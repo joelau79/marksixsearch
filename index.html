@@ -516,18 +516,29 @@
             const lastFetchTime = lastFetch ? parseInt(lastFetch) : 0;
             const daysAgo = lastFetch ? daysSince(lastFetchTime) : null;
 
-            // 嘗試讀取完整本地備份（優先使用，避免每次重新計算）
+            // 安全檢查：localStorage 的數據必須完全正確才能使用
+            // 錯誤的 localStorage 會覆蓋 full_data.js 的正確數據
             try {
                 const fullBackup = localStorage.getItem(FULL_DATA_KEY);
                 if (fullBackup) {
                     const parsed = JSON.parse(fullBackup);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
+                    // 驗證：必須是數組、至少有 3000 條記錄、最後一條是 93/001
+                    if (Array.isArray(parsed) && 
+                        parsed.length >= 3000 && 
+                        parsed[parsed.length - 1] && 
+                        parsed[parsed.length - 1][0] === '93/001') {
+                        // 數據驗證通過，才使用 localStorage
                         markSixData = parsed;
+                    } else {
+                        // 數據不正確，刪除錯誤的 localStorage
+                        localStorage.removeItem(FULL_DATA_KEY);
                     }
                 }
-            } catch (e) { /* ignore */ }
+            } catch (e) { 
+                localStorage.removeItem(FULL_DATA_KEY);
+            }
 
-            // 嘗試讀取快取（30分鐘有效）
+            // 嘗試讀取快取（30分鐘有效）— 不再用於主要數據源
             let cachedData = [];
             let fromCache = false;
             try {
@@ -542,28 +553,9 @@
                 }
             } catch (e) { /* ignore */ }
 
-            // 每週抓取一次
-            const needFetch = !lastFetch || (Date.now() - lastFetchTime >= FETCH_INTERVAL_MS);
-
-            if (needFetch) {
-                // 嘗試從 lottolyzer.com 抓取
-                try {
-                    const resp = await fetch('https://zh.lottolyzer.com/history/hong-kong/mark-six');
-                    if (!resp.ok) throw new Error('Network response was not ok');
-                    const html = await resp.text();
-                    const parsed = parseLottolyzerTable(html);
-                    if (parsed.length > 0) {
-                        cachedData = parsed;
-                        fromCache = false;
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify({ data: parsed, timestamp: Date.now() }));
-                        localStorage.setItem(LAST_FETCH_KEY, Date.now().toString());
-                    }
-                } catch (e) {
-                    console.warn('Fetch lottolyzer failed:', e.message);
-                }
-            }
-
-            return { data: cachedData, fromCache, daysAgo, fetched: needFetch && !fromCache };
+            // 不再自動抓取 lottolyzer.com（避免數據污染）
+            // 手動更新請使用獨立的更新腳本
+            return { data: cachedData, fromCache, daysAgo, fetched: false };
         }
 
         function parseLottolyzerTable(html) {
@@ -598,35 +590,8 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             // markSixData 來自 full_data.js（全局 const）
-            const existingDates = new Set(markSixData.map(r => r[1]));
-
-            // 抓取 lottolyzer 最新數據
-            const { data: latestData, fromCache, daysAgo, fetched } = await fetchLatestData();
-
-            if (latestData.length > 0) {
-                // 合併新數據（按日期去重）
-                const newRecords = latestData.filter(r => !existingDates.has(r[1]));
-                if (newRecords.length > 0) {
-                    markSixData = [...newRecords, ...markSixData].sort((a, b) => b[1].localeCompare(a[1]));
-                }
-                // 保存完整數據到 localStorage
-                localStorage.setItem(FULL_DATA_KEY, JSON.stringify(markSixData));
-            }
-
-            // 更新顯示文字
-            if (fetched || (!lastFetch && latestData.length > 0)) {
-                // 今天剛抓取
-                const now = new Date();
-                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                lastUpdatedText = `✅ 已更新：今天 ${timeStr} | 📊 總記錄：${markSixData.length}條`;
-            } else if (daysAgo !== null && latestData.length > 0) {
-                // 有記錄但非今天
-                lastUpdatedText = `📅 距離上次更新：${daysAgo}天前 | 📊 總記錄：${markSixData.length}條`;
-            } else {
-                lastUpdatedText = `📊 總記錄：${markSixData.length}條（本地數據）`;
-            }
-
-            document.getElementById('lastUpdated').textContent = lastUpdatedText;
+            // 已經由 fetchLatestData() 驗證並載入
+            
             updateStats();
             renderHistory();
             renderFrequency();
