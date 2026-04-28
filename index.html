@@ -281,6 +281,16 @@
             background: linear-gradient(135deg, #ffd700, #ff8c00);
             color: #1a1a2e;
         }
+        /* 官方波色 */
+        .ball.red-oc { background: #d32f2f; color: white; }
+        .ball.blue-oc { background: #1976d2; color: white; }
+        .ball.green-oc { background: #388e3c; color: white; }
+        .ball.matched { box-shadow: 0 0 0 3px #ffd700; }
+        /* 運財號碼球 */
+        .lucky-ball.red-oc { background: #d32f2f; color: white; }
+        .lucky-ball.blue-oc { background: #1976d2; color: white; }
+        .lucky-ball.green-oc { background: #388e3c; color: white; }
+        .lucky-ball.gold { background: linear-gradient(135deg, #ffd700, #ff8c00); color: #1a1a2e; }
         .result-count {
             color: #ffd700;
             font-weight: bold;
@@ -704,7 +714,7 @@
                         <div class="result-numbers">
                             ${mainNums.map(n => {
                                 const isMatch = sortedSearch.includes(n);
-                                return `<div class="ball ${isMatch ? 'green' : 'red'}">${n}</div>`;
+                                return `<div class="ball ${getBallColor(n)}${isMatch ? ' matched' : ''}">${n}</div>`;
                             }).join('')}
                             <div class="ball special">${specialNum}</div>
                         </div>
@@ -803,7 +813,7 @@
                             <div class="result-date">${date}</div>
                         </div>
                         <div class="result-numbers">
-                            ${mainNums.map(n => `<div class="ball red">${n}</div>`).join('')}
+                            ${mainNums.map(n => `<div class="ball ${getBallColor(n)}">${n}</div>`).join('')}
                             <div class="ball special">${specialNum}</div>
                         </div>
                         <div style="min-width: 90px; text-align: right;">
@@ -858,6 +868,17 @@
         }
 
         // ===== 運財號碼功能 =====
+        function getBallColor(num) {
+            // 官方波色分佈
+            const red = [1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,45,46];
+            const blue = [3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48];
+            const green = [5,6,11,16,17,21,22,27,28,32,33,38,39,43,44,49];
+            if (red.includes(num)) return 'red-oc';
+            if (blue.includes(num)) return 'blue-oc';
+            if (green.includes(num)) return 'green-oc';
+            return 'special';
+        }
+        
         function calculateFrequency() {
             const freq = {};
             for (let i = 1; i <= 49; i++) freq[i] = 0;
@@ -917,7 +938,7 @@
             html += `<div class="lucky-group">
                 <div class="lucky-group-title"><span class="fire">🔥</span> 第1組：熱門號碼（出現次數最多）</div>
                 <div class="lucky-numbers">
-                    ${hotNumbers.map((n, i) => `<div class="lucky-ball gold">${n}</div>`).join('')}
+                    ${hotNumbers.map((n, i) => `<div class="lucky-ball ${getBallColor(n)}">${n}</div>`).join('')}
                 </div>
             </div>`;
 
@@ -927,7 +948,7 @@
                 html += `<div class="lucky-group">
                     <div class="lucky-group-title"><span class="fire">✨</span> 第${g}組：隨機號碼</div>
                     <div class="lucky-numbers">
-                        ${randNums.map(n => `<div class="lucky-ball ${getLuckyColor(g)}">${n}</div>`).join('')}
+                        ${randNums.map(n => `<div class="lucky-ball ${getBallColor(n)}">${n}</div>`).join('')}
                     </div>
                 </div>`;
             }
