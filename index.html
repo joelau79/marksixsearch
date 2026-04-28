@@ -595,6 +595,15 @@
             // markSixData 來自 full_data.js（全局 const）
             // 已經由 fetchLatestData() 驗證並載入
             
+            // 顯示數據信息
+            if (markSixData && markSixData.length > 0) {
+                const firstDate = markSixData[0] ? markSixData[0][1] : '';
+                const lastRecord = markSixData[markSixData.length - 1];
+                const lastDate = lastRecord ? lastRecord[1] : '';
+                document.getElementById('lastUpdated').textContent = 
+                    `📊 總記錄：${markSixData.length}條 | 數據範圍：${lastDate} 至 ${firstDate}`;
+            }
+            
             updateStats();
             renderHistory();
             renderFrequency();
